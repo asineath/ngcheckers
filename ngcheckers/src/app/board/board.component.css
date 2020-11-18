@@ -1,0 +1,48 @@
+.board {
+    border: 1px solid black;
+    height: 600px;
+    width: 600px;
+    display: block;
+    margin: 0 auto;
+    margin-top: 20px;
+    position: relative;
+    box-shadow: 3px 3px 15px 1px rgba(0,0,0,0.75);
+}
+
+.square {
+    display: inline-block;
+    width: 12.5%;
+    height: 12.5%;
+    background-color: #dd0000;
+    pointer-events: none;
+    /* border: 1px solid black; */
+}
+
+.board > .square:not(.even-row):nth-child(2n + 1), 
+.board > .square.even-row:nth-child(2n) {
+    background-color: #222222;
+}
+
+.possibleMove {
+    pointer-events: auto;
+    cursor: pointer;
+    background-color: green!important;
+}
+
+.possibleJumper {
+    background-color: orange!important;
+}
+
+.otherPossibleJumpersExist,
+:host .otherPossibleJumpersExist * {
+    pointer-events: none!important;
+    cursor: default!important;
+}
+
+app-piece {
+    position: absolute;
+    width: 12.5%; 
+    height: 12.5%;
+    transition: left 1s, top 1s;
+    transition-timing-function: ease;
+}

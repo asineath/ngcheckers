@@ -1,0 +1,28 @@
+.square {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.piece {
+
+    display: inline-block;
+    border-radius: 100px;
+    position: absolute;
+    height: 80%;
+    width: 80%;
+    top: 10%;
+    left: 10%;
+    box-shadow: 3px 3px 15px 1px rgba(0,0,0,0.75);
+}
+
+.piece.H {
+    background-color: red;
+    cursor: pointer;
+}
+
+.piece.C {
+    background-color: #555555;
+    pointer-events: none;
+}

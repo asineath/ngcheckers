@@ -1,0 +1,32 @@
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="board">
+                <ng-container *ngFor="let row of board; let i = index">
+                    <div *ngFor="let square of row; let ii = index" 
+                        class="square" 
+                        [ngClass]="{
+                            'even-row': i % 2 == 0,
+                            'possibleMove': isPossibleMove(i,ii),
+                            'possibleJumper': isPossibleJumper(i,ii)
+                        }"
+                        (click)="moveSelectedPiece({'row': i, 'column': ii})">&nbsp;     
+                    </div>
+                </ng-container>
+
+                <ng-container *ngFor="let row of board; let i = index">
+                    <ng-container *ngFor="let space of row; let ii = index">
+                        <app-piece *ngIf="board[i][ii]" 
+                            [player]="board[i][ii]"
+                            [location]="{'row': i, 'column': ii}"
+                            (emitPiece)="setSelectedPiece($event)"
+                            [ngClass]="{'otherPossibleJumpersExist': possibleJumps.length && !isPossibleJumper(i,ii)}"
+                            [ngStyle]="{'top': 12.5 * i + '%', 'left': 12.5 * ii + '%'}"
+                            ></app-piece>
+                    </ng-container>
+                </ng-container>
+            </div>
+            <button type="button" (click)="logBoard()">Log Board</button>
+        </div>
+    </div>
+</div>
