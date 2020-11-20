@@ -14,7 +14,7 @@
                     </div>
                 </ng-container>
 
-                <ng-container *ngFor="let row of board; let i = index">
+                <!-- <ng-container *ngFor="let row of board; let i = index">
                     <ng-container *ngFor="let space of row; let ii = index">
                         <app-piece *ngIf="board[i][ii]" 
                             [player]="board[i][ii]"
@@ -24,7 +24,7 @@
                             [ngStyle]="{'top': 12.5 * i + '%', 'left': 12.5 * ii + '%'}"
                             ></app-piece>
                     </ng-container>
-                </ng-container>
+                </ng-container> -->
             </div>
             <button type="button" (click)="logBoard()">Log Board</button>
         </div>

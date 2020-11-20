@@ -1,5 +1,6 @@
 import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { PieceComponent } from '../piece/piece.component';
+import { PieceService } from '../piece/piece.service';
 
 @Component({
   selector: 'app-board',
@@ -16,7 +17,9 @@ export class BoardComponent implements OnInit {
   possibleJumps: any[] = [];
 
   @ViewChildren(PieceComponent) pieceChildren!: QueryList<PieceComponent>;
-  constructor() { }
+  constructor(
+    public pieceService: PieceService
+  ) { }
 
   ngOnInit(): void {
     this.resetBoard();
@@ -33,6 +36,16 @@ export class BoardComponent implements OnInit {
       [null,'H',null,'H',null,'H',null,'H'],
       ['H',null,'H',null,'H',null,'H',null],
     ];
+
+    this.generatePieces();
+  }
+
+  generatePieces() {
+    this.board.forEach(r => {
+      r.forEach(square => {
+        this.pieceService.appendPieceComponentToBody();
+      })
+    })
   }
 
   checkForJumpsH() {
