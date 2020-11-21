@@ -1,7 +1,9 @@
 
 <div class="square">
-    <div class="piece" *ngIf="isActive" [ngClass]="{'H': player == 'H', 'C': player == 'C'}" (click)="selectPiece()">
-
+    <div class="piece" 
+    [ngClass]="{'H': player == 'H', 'C': player == 'C'}" 
+    (click)="selectPiece()">
+        <span *ngIf="isKing" class="crown">♕</span>
     </div>
 </div>
 

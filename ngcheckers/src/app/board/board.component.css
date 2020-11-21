@@ -23,26 +23,34 @@
     background-color: #222222;
 }
 
-.possibleMove {
-    pointer-events: auto;
-    cursor: pointer;
-    background-color: green!important;
-}
 
-.possibleJumper {
-    background-color: orange!important;
-}
-
-.otherPossibleJumpersExist,
-:host .otherPossibleJumpersExist * {
-    pointer-events: none!important;
-    cursor: default!important;
-}
-
-app-piece {
+::ng-deep app-piece {
     position: absolute;
     width: 12.5%; 
     height: 12.5%;
-    transition: left 1s, top 1s;
+    transition: left 0.5s, top 0.5s;
     transition-timing-function: ease;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.square.possibleJumper {
+    background-color: orange!important;
+}
+
+.square.possibleMover {
+    background-color: green!important;
+}
+
+.square.possibleMove {
+    background-color:  blue!important;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.square.possibleJump {
+    background-color: pink!important;
+    cursor: pointer;
+    pointer-events: auto;
 }

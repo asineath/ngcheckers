@@ -1,28 +1,61 @@
-import { Component, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, OnInit, QueryList, ViewChildren, ViewChild, ViewContainerRef, ComponentFactory, ComponentRef, ComponentFactoryResolver, AfterViewInit } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 import { PieceComponent } from '../piece/piece.component';
-import { PieceService } from '../piece/piece.service';
+
 
 @Component({
   selector: 'app-board',
   templateUrl: './board.component.html',
   styleUrls: ['./board.component.css']
 })
-export class BoardComponent implements OnInit {
+export class BoardComponent implements OnInit, AfterViewInit {
 
-  board: any[] = []; 
+  board: string[][] = []; 
 
-  selectedPiece: any = null;
-  possibleMoves: string[] = [];
+  pieces: ComponentRef<PieceComponent>[] = [];
 
-  possibleJumps: any[] = [];
+  turn$ = new BehaviorSubject<string>(null);
 
-  @ViewChildren(PieceComponent) pieceChildren!: QueryList<PieceComponent>;
+  possibleJumpers: any[] = [];
+  possibleMovers: any[] = [];
+  possibleJumpsBySelectedPiece: any[] = [];
+  possibleMovesBySelectedPiece: any[] = [];
+  selectedPiece: any = [];
+  selectedPieceC: any = [];
+
+  @ViewChild('piecesContainer', {read: ViewContainerRef}) entry: ViewContainerRef;
   constructor(
-    public pieceService: PieceService
+    private resolver: ComponentFactoryResolver
   ) { }
 
   ngOnInit(): void {
     this.resetBoard();
+  }
+
+  
+
+  createStartingPieces() {
+    this.board.forEach((r, ir) => {
+      r.forEach((c, ic) => {
+        if (c) {
+          this.createPiece(ir,ic,c);
+        }
+      })
+    });
+
+    console.log(this.pieces);
+  }
+
+  createPiece(row, column, player) {
+    const factory = this.resolver.resolveComponentFactory(PieceComponent);
+    const componentRef = this.entry.createComponent(factory);
+    componentRef.instance.player = player;
+    componentRef.instance.row = row;
+    componentRef.instance.column = column;
+    componentRef.instance.emitPiece.subscribe(event => {
+      this.selectPiece(event);
+    })
+    this.pieces.push(componentRef);
   }
 
   resetBoard() {
@@ -36,121 +69,326 @@ export class BoardComponent implements OnInit {
       [null,'H',null,'H',null,'H',null,'H'],
       ['H',null,'H',null,'H',null,'H',null],
     ];
-
-    this.generatePieces();
+    setTimeout(() => {
+      this.createStartingPieces();
+      this.turn$.next('H');
+    }, 0)
+    
   }
 
-  generatePieces() {
-    this.board.forEach(r => {
-      r.forEach(square => {
-        this.pieceService.appendPieceComponentToBody();
-      })
+  ngAfterViewInit() {
+    this.turn$.subscribe(data => {
+      setTimeout(() => {
+        if (data == 'H') {
+          this.startTurnH();
+        } else if (data == 'C') {
+          this.clearTurnDataH();
+          this.startTurnC();
+        }
+      }, 500);
+      //todo - switch to debounceTime
     })
   }
 
-  checkForJumpsH() {
-    console.log('checking for jumps');
-    this.possibleJumps = [];
+  startTurnH() {
+    this.clearTurnDataH();
+    this.checkForJumpsH();
+    this.checkForMovesH();
+  }
 
-    this.board.forEach((row, ir) => {
+  clearTurnDataH() {
+    this.possibleJumpers = [];
+    this.possibleMovers = [];
+    this.possibleMovesBySelectedPiece = [];
+    this.possibleJumpsBySelectedPiece = [];
+    this.selectedPiece = null;
+  }
 
-      row.forEach((space, ic) => {
-        if (space == 'H') {
+  startTurnC() {
 
-          let piece = this.getPieceByPosition(ir,ic);
+    let possibleJumpersC = [];
+    let possibleMoversC = [];
 
-          if (!piece || !piece.isActive) {
-            return false;
-          }
+    this.pieces.forEach(p => {
+      if (p.instance.player == 'C') {
+        let row = p.instance.row;
+        let column = p.instance.column;
 
-          if (
-            this.spaceExists(ir-2,ic-2) && 
-            this.board[ir-1][ic-1] == 'C' &&
-            !this.board[ir-2][ic-2]
-            ) {
-              this.possibleJumps.push({
-                piece: piece,
-                row: ir,
-                column: ic
-              })
-            }
-
-            if (
-              this.spaceExists(ir-2,ic+2) && 
-              this.board[ir-1][ic+1] == 'C' &&
-              !this.board[ir-2][ic+2]
-              ) {
-                this.possibleJumps.push({
-                  piece: piece,
-                  row: ir,
-                  column: ic
-                })
-              }
+        if (
+          this.spaceExists(row + 2, column - 2) &&
+          this.pieceAtPosition(row + 1, column - 1)?.instance.player == 'H' &&
+          !this.pieceAtPosition(row + 2, column - 2)
+        ) {
+          possibleJumpersC.push({
+            fromRow: row, 
+            fromColumn: column, 
+            toRow: row + 2, 
+            toColumn: column - 2
+          });
         }
-      });
+
+        if (
+          this.spaceExists(row + 2, column + 2) &&
+          this.pieceAtPosition(row + 1, column + 1)?.instance.player == 'H' &&
+          !this.pieceAtPosition(row + 2, column + 2)
+        ) {
+          possibleJumpersC.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row + 2,
+            toColumn: column + 2
+          });
+        }
+      }
+    })
+  
+    this.pieces.forEach(p => {
+      if (p.instance.player == 'C') {
+        let row = p.instance.row;
+        let column = p.instance.column;
+
+        if (
+          this.spaceExists(row + 1, column - 1) &&
+          !this.pieceAtPosition(row + 1, column - 1)
+        ) {
+          possibleMoversC.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row + 1,
+            toColumn: column -1
+          });
+        }
+
+        if (
+          this.spaceExists(row + 1, column + 1) &&
+          !this.pieceAtPosition(row + 1, column + 1)
+        ) {
+          possibleMoversC.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row + 1,
+            toColumn: column + 1
+          });
+        }
+      }
+    })
+  
+    console.log(possibleJumpersC);
+    console.log(possibleMoversC);
+
+    if (possibleJumpersC.length) {
+      let ji = Math.floor(Math.random() * possibleJumpersC.length);
+      this.selectedPieceC = this.pieceAtPosition(possibleJumpersC[ji].fromRow, possibleJumpersC[ji].fromColumn);
+      this.moveSelectedPieceC(possibleJumpersC[ji].toRow, possibleJumpersC[ji].toColumn);
+    } else if (possibleMoversC.length) {
+      let mi = Math.floor(Math.random() * possibleMoversC.length);
+      console.log(mi);
+      this.selectedPieceC = this.pieceAtPosition(possibleMoversC[mi].fromRow, possibleMoversC[mi].fromColumn);
+      console.log(this.selectedPieceC);
+      this.moveSelectedPieceC(possibleMoversC[mi].toRow, possibleMoversC[mi].toColumn);
+    }
+  }
+
+  moveSelectedPieceC(toRow, toColumn) {
+    let piece = this.pieceAtPosition(this.selectedPieceC.instance.row, this.selectedPieceC.instance.column);
+    let fromRow = piece.instance.row;
+    let fromColumn = piece.instance.column;
+
+    piece.instance.row = toRow;
+    piece.instance.column = toColumn;
+    piece.instance.setPosition();
+
+    if (Math.abs(fromRow - toRow) % 2 == 0) {
+      let removedPieceRow = (fromRow + toRow) / 2;
+      let removedPieceColumn = (fromColumn + toColumn) / 2;
+      let removedPiece = this.pieceAtPosition(removedPieceRow, removedPieceColumn);
+      this.pieces = this.pieces.filter(p => p != removedPiece);
+      removedPiece.destroy();
+    }
+
+    this.clearTurnDataH();
+    this.turn$.next('H');
+  }
+
+  checkForJumpsH() {
+    this.pieces.forEach(p => {
+      if (p.instance.player == 'H') {
+        let row = p.instance.row;
+        let column = p.instance.column;
+
+        if (
+          this.spaceExists(row - 2, column - 2) &&
+          this.pieceAtPosition(row - 1, column - 1)?.instance.player == 'C' &&
+          !this.pieceAtPosition(row - 2, column - 2)
+        ) {
+          this.possibleJumpers.push({
+            fromRow: row, 
+            fromColumn: column, 
+            toRow: row -2, 
+            toColumn: column - 2
+          });
+        }
+
+        if (
+          this.spaceExists(row - 2, column + 2) &&
+          this.pieceAtPosition(row - 1, column + 1)?.instance.player == 'C' &&
+          !this.pieceAtPosition(row - 2, column + 2)
+        ) {
+          this.possibleJumpers.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row - 2,
+            toColumn: column + 2
+          });
+        }
+      }
+    })
+  }
+
+  checkForMovesH() {
+    this.pieces.forEach(p => {
+      if (p.instance.player == 'H') {
+        let row = p.instance.row;
+        let column = p.instance.column;
+
+        if (
+          this.spaceExists(row - 1, column - 1) &&
+          !this.pieceAtPosition(row - 1, column - 1)
+        ) {
+          this.possibleMovers.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row - 1,
+            toColumn: column -1
+          });
+        }
+
+        if (
+          this.spaceExists(row - 1, column + 1) &&
+          !this.pieceAtPosition(row - 1, column + 1)
+        ) {
+          this.possibleMovers.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row - 1,
+            toColumn: column + 1
+          });
+        }
+      }
+    })
+
+    console.log(this.possibleMovers);
+  }
+
+  spaceIsPossibleJumper(row, column) {
+    let isPossibleJumper = false;
+    this.possibleJumpers.forEach(p => {
+      if (p.fromRow == row && p.fromColumn == column) {
+        isPossibleJumper = true;
+      }
+    })
+    return isPossibleJumper;
+  }
+
+  spaceIsPossibleMover(row, column) {
+    if (this.possibleJumpers.length) return false;
+
+    let isPossibleMover = false;
+    this.possibleMovers.forEach(p => {
+      if (p.fromRow == row && p.fromColumn == column) {
+        isPossibleMover = true;
+      }
+    })
+    return isPossibleMover;
+  }
+
+  spaceIsPossibleJump(row, column) {
+    let isPossibleJump = false;
+    this.possibleJumpsBySelectedPiece.forEach(p => {
+      if (p.row == row && p.column == column) {
+        isPossibleJump = true;
+      }
+    })
+    return isPossibleJump;
+  }
+
+  spaceIsPossibleMove(row, column) {
+    let isPossibleMove = false;
+    this.possibleMovesBySelectedPiece.forEach(p => {
+      if (p.row == row && p.column == column) {
+        isPossibleMove = true;
+      }
+    })
+    return isPossibleMove;
+  }
+
+  pieceAtPosition(row, column) {
+    let piece = null;
+    this.pieces.forEach(p => {
+      if (p.instance.row == row && p.instance.column == column) {
+        piece = p;
+      }
+    })
+    return piece;
+  }
+
+  selectPiece(event) {
+    console.log(event.row, event.column);
+    this.selectedPiece = ({row: event.row, column: event.column});
+    this.possibleJumpsBySelectedPiece = [];
+    this.possibleMovesBySelectedPiece = [];
+    if (
+      this.spaceIsPossibleJumper(event.row, event.column) || 
+      this.spaceIsPossibleMover(event.row, event.column)) {
+        this.highlightPossibleMoves(event);
+    }
+  }
+
+  highlightPossibleMoves(event) {
+    this.possibleJumpers.forEach(j => {
+      if (j.fromRow == event.row && j.fromColumn == event.column) {
+        this.possibleJumpsBySelectedPiece.push({
+          row: j.toRow,
+          column: j.toColumn
+        })
+      }
     });
 
-    console.log(this.possibleJumps);
-  }
+    if (this.possibleJumpsBySelectedPiece.length) return;
 
-  isPossibleJumper(row, column) {
-    let possibleJump = false;
-
-    this.possibleJumps.forEach(j => {
-      if (j.piece.location.row == row && j.piece.location.column == column && j.piece.isActive) {
-        console.log('possible jump');
-        console.log(j);
-        possibleJump = true;
+    this.possibleMovers.forEach(m => {
+      if (m.fromRow == event.row && m.fromColumn == event.column) {
+        this.possibleMovesBySelectedPiece.push({
+          row: m.toRow,
+          column: m.toColumn
+        })
       }
     });
 
-    return possibleJump;
+    console.log(this.possibleJumpsBySelectedPiece);
+    console.log(this.possibleMovesBySelectedPiece);
   }
 
-  isPossibleMove(row, column) {
-    return this.possibleMoves.indexOf(row+','+column) > -1;
-  }
+  moveSelectedPiece(toRow, toColumn) {
+    let piece = this.pieceAtPosition(this.selectedPiece.row, this.selectedPiece.column);
+    let fromRow = piece.instance.row;
+    let fromColumn = piece.instance.column;
 
-  setSelectedPiece(event) {
-    this.selectedPiece = event;
-    this.possibleMoves = [];
-    this.setPossibleMovesH();
-  }
 
-  setPossibleMovesH() {
-    
-    let sRow = this.selectedPiece.row;
-    let sColumn = this.selectedPiece.column;
+    piece.instance.row = toRow;
+    piece.instance.column = toColumn;
+    piece.instance.setPosition();
 
-    let canJump = false;
-
-    if (
-      this.spaceExists(sRow-2,sColumn-2) && 
-      this.board[sRow-1][sColumn-1] == 'C' &&
-      !this.board[sRow-2][sColumn-2]
-    ) {
-      this.possibleMoves.push((sRow-2) +','+(sColumn-2));
-      canJump = true;
+    if (Math.abs(fromRow - toRow) % 2 == 0) {
+      let removedPieceRow = (fromRow + toRow) / 2;
+      let removedPieceColumn = (fromColumn + toColumn) / 2;
+      let removedPiece = this.pieceAtPosition(removedPieceRow, removedPieceColumn);
+      this.pieces = this.pieces.filter(p => p != removedPiece);
+      removedPiece.destroy();
     }
 
-    if (
-      this.spaceExists(sRow-2,sColumn+2) && 
-      this.board[sRow-1][sColumn+1] == 'C' &&
-      !this.board[sRow-2][sColumn+2]
-    ) {
-      this.possibleMoves.push((sRow-2) +','+(sColumn+2));
-      canJump = true;
-    }
-
-    if (!canJump) {
-      if (this.spaceExists(sRow-1,sColumn-1) && !this.board[sRow-1][sColumn-1]) {
-        this.possibleMoves.push((sRow-1) +','+(sColumn-1));
-      }
-      if (this.spaceExists(sRow-1,sColumn+1) && !this.board[sRow-1][sColumn+1]) {
-        this.possibleMoves.push((sRow-1)+','+(sColumn+1));
-      }
-    }
-
+    this.clearTurnDataH();
+    this.turn$.next('C');
   }
 
   spaceExists(row, column) {
@@ -159,136 +397,7 @@ export class BoardComponent implements OnInit {
     return true;
   }
 
-  moveSelectedPiece(position){
-    let oldRow = this.selectedPiece.row;
-    let oldColumn = this.selectedPiece.column;
-
-
-    this.board[oldRow][oldColumn] = null;
-    this.board[position.row][position.column] = 'H';
-
-    if (
-      Math.abs(oldRow - position.row) == 2 && 
-      Math.abs(oldColumn - position.column) == 2
-    ) {
-      this.board[(oldRow + position.row) / 2][(oldColumn + position.column) / 2] = null;
-      let removedPiece = this.getPieceByPosition((oldRow + position.row) / 2, (oldColumn + position.column) / 2);
-      removedPiece.isActive = false;
-    }
-
-    let piece = this.getPieceByPosition(oldRow, oldColumn);
-    piece.location = {row: position.row, column: position.column};
-
-    this.possibleMoves = [];
-
-    this.computerTurnCalc();
-  }
-
-  getPieceByPosition(row,column) {
-    let piece = null;
-    this.pieceChildren.forEach(p => {
-      if (p.location.row == row && p.location.column == column && p.isActive) {
-        piece = p;
-      }
-    })
-    return piece;
-  }
-
-
-  computerTurnCalc() {
-    let moves = [];
-    let jumps = [];
-
-    console.log(this.pieceChildren);
-
-    this.board.forEach((row, ir) => {
-      row.forEach((space, ic) => {
-        if (space == 'C') {
-
-          let piece = this.getPieceByPosition(ir,ic);
-
-          if (!piece || !piece.isActive) {
-            return;
-          }
-
-          if (
-            this.spaceExists(ir+2,ic-2) && 
-            this.board[ir+1][ic-1] == 'H' &&
-            !this.board[ir+2][ic-2]
-            ) {
-              jumps.push({
-                piece: piece,
-                row: ir+2,
-                column: ic-2
-              })
-            }
-
-          if (
-            this.spaceExists(ir+2,ic+2) && 
-            this.board[ir+1][ic+1] == 'H' &&
-            !this.board[ir+2][ic+2]
-            ) {
-              jumps.push({
-                piece: piece,
-                row: ir+2,
-                column: ic+2
-              })
-            }
-
-          if (this.spaceExists(ir+1,ic-1) && !this.board[ir+1][ic-1]) {
-            moves.push({
-              piece: piece,
-              row: ir+1,
-              column: ic-1
-            })
-          }
-
-          if (this.spaceExists(ir+1,ic+1) && !this.board[ir+1][ic+1]) {
-            moves.push({
-              piece: piece,
-              row: ir+1,
-              column: ic+1
-            })
-          }
-        }
-      })
-    })
-
-
-    if (jumps.length) {
-      let ji = Math.floor(Math.random() * jumps.length);
-      let j = jumps[ji];
-
-      this.makeJumpC(j)
-
-    } else {
-      //regular move;
-      let mi = Math.floor(Math.random() * moves.length);
-      let m = moves[mi];
-
-      this.board[m.piece.location.row][m.piece.location.column] = null;
-      this.board[m.row][m.column] = 'C';
-      m.piece.location = {row: m.row, column: m.column};
-    }
-
-    this.checkForJumpsH();
-  }
-
-  makeJumpC(j) {
-    this.board[j.piece.location.row][j.piece.location.column] = null;
-    this.board[j.row][j.column] = 'C';
-    
-    this.board[(j.piece.location.row + j.row) / 2][(j.piece.location.column + j.column) / 2] = null;
-
-    let removedPiece = this.getPieceByPosition((j.piece.location.row + j.row) / 2, (j.piece.location.column + j.column) / 2);
-    removedPiece.isActive = false;
-
-    j.piece.location = {row: j.row, column: j.column};
-  }
-
-  logBoard() {
-    console.log(this.board);
-  }
+  
 
 
 }

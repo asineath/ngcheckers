@@ -20,9 +20,25 @@
 .piece.H {
     background-color: red;
     cursor: pointer;
+    pointer-events: auto;
 }
 
 .piece.C {
     background-color: #555555;
     pointer-events: none;
+}
+
+.piece .crown {
+    color: white;
+    font-size: 30px;
+    line-height: 28px;
+    height: 30px;
+    width: 30px;
+    position: absolute;
+    margin: auto;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    text-align: center;
 }
