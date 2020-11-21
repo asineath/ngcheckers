@@ -35,7 +35,10 @@ export class PieceComponent implements OnInit, OnChanges {
     }
 
     if (this.player == 'C' && this.row == 7) {
-      this.isKing = true;
+      setTimeout(() => {
+        this.isKing = true;
+      }, 500)
+      
     }
 
   }

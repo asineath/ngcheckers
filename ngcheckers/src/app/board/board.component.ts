@@ -20,8 +20,13 @@ export class BoardComponent implements OnInit, AfterViewInit {
   possibleMovers: any[] = [];
   possibleJumpsBySelectedPiece: any[] = [];
   possibleMovesBySelectedPiece: any[] = [];
+
+  possibleJumpersC: any[] = [];
+
   selectedPiece: any = [];
   selectedPieceC: any = [];
+
+  jumpingAgainH: boolean = false;
 
   @ViewChild('piecesContainer', {read: ViewContainerRef}) entry: ViewContainerRef;
   constructor(
@@ -32,7 +37,6 @@ export class BoardComponent implements OnInit, AfterViewInit {
     this.resetBoard();
   }
 
-  
 
   createStartingPieces() {
     this.board.forEach((r, ir) => {
@@ -59,15 +63,25 @@ export class BoardComponent implements OnInit, AfterViewInit {
   }
 
   resetBoard() {
+    // this.board = [
+    //   [null,'C',null,'C',null,'C',null,'C'],
+    //   ['C',null,'C',null,'C',null,'C', null],
+    //   [null,'C',null,'C',null,'C',null,'C'],
+    //   [null,null,null,null,null,null,null,null],
+    //   [null,null,null,null,null,null,null,null],
+    //   ['H',null,'H',null,'H',null,'H',null],
+    //   [null,'H',null,'H',null,'H',null,'H'],
+    //   ['H',null,'H',null,'H',null,'H',null],
+    // ];
     this.board = [
-      [null,'C',null,'C',null,'C',null,'C'],
-      ['C',null,'C',null,'C',null,'C', null],
-      [null,'C',null,'C',null,'C',null,'C'],
-      [null,null,null,null,null,null,null,null],
+      [null,null,null,null,null,'C',null,'C'],
+      ['C',null,'H',null,'C',null,'C', null],
+      [null,'C',null,null,null,'C',null,'C'],
+      [null,null,'H',null,null,null,null,null],
       [null,null,null,null,null,null,null,null],
       ['H',null,'H',null,'H',null,'H',null],
-      [null,'H',null,'H',null,'H',null,'H'],
-      ['H',null,'H',null,'H',null,'H',null],
+      [null,'H',null,'H',null,'C',null,'H'],
+      ['H',null,'H',null,null,null,null,null],
     ];
     setTimeout(() => {
       this.createStartingPieces();
@@ -97,6 +111,7 @@ export class BoardComponent implements OnInit, AfterViewInit {
   }
 
   clearTurnDataH() {
+    this.jumpingAgainH = false;
     this.possibleJumpers = [];
     this.possibleMovers = [];
     this.possibleMovesBySelectedPiece = [];
@@ -106,39 +121,12 @@ export class BoardComponent implements OnInit, AfterViewInit {
 
   startTurnC() {
 
-    let possibleJumpersC = [];
+    this.possibleJumpersC = [];
     let possibleMoversC = [];
 
     this.pieces.forEach(p => {
       if (p.instance.player == 'C') {
-        let row = p.instance.row;
-        let column = p.instance.column;
-
-        if (
-          this.spaceExists(row + 2, column - 2) &&
-          this.pieceAtPosition(row + 1, column - 1)?.instance.player == 'H' &&
-          !this.pieceAtPosition(row + 2, column - 2)
-        ) {
-          possibleJumpersC.push({
-            fromRow: row, 
-            fromColumn: column, 
-            toRow: row + 2, 
-            toColumn: column - 2
-          });
-        }
-
-        if (
-          this.spaceExists(row + 2, column + 2) &&
-          this.pieceAtPosition(row + 1, column + 1)?.instance.player == 'H' &&
-          !this.pieceAtPosition(row + 2, column + 2)
-        ) {
-          possibleJumpersC.push({
-            fromRow: row, 
-            fromColumn: column,
-            toRow: row + 2,
-            toColumn: column + 2
-          });
-        }
+        this.checkPieceCanJumpC(p);
       }
     })
   
@@ -170,77 +158,57 @@ export class BoardComponent implements OnInit, AfterViewInit {
             toColumn: column + 1
           });
         }
+
+        if (
+          p.instance.isKing && 
+          this.spaceExists(row - 1, column - 1) &&
+          !this.pieceAtPosition(row - 1, column - 1)
+        ) {
+          possibleMoversC.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row - 1,
+            toColumn: column - 1
+          });
+        }
+
+        if (
+          p.instance.isKing && 
+          this.spaceExists(row - 1, column + 1) &&
+          !this.pieceAtPosition(row - 1, column + 1)
+        ) {
+          possibleMoversC.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row - 1,
+            toColumn: column + 1
+          });
+        }
       }
     })
   
-    console.log(possibleJumpersC);
+    console.log(this.possibleJumpersC);
     console.log(possibleMoversC);
 
-    if (possibleJumpersC.length) {
-      let ji = Math.floor(Math.random() * possibleJumpersC.length);
-      this.selectedPieceC = this.pieceAtPosition(possibleJumpersC[ji].fromRow, possibleJumpersC[ji].fromColumn);
-      this.moveSelectedPieceC(possibleJumpersC[ji].toRow, possibleJumpersC[ji].toColumn);
+    if (this.possibleJumpersC.length) {
+      let ji = Math.floor(Math.random() * this.possibleJumpersC.length);
+      this.selectedPieceC = this.pieceAtPosition(this.possibleJumpersC[ji].fromRow, this.possibleJumpersC[ji].fromColumn);
+      console.log(this.selectedPieceC);
+      this.moveSelectedPieceC(this.possibleJumpersC[ji].toRow, this.possibleJumpersC[ji].toColumn);
     } else if (possibleMoversC.length) {
       let mi = Math.floor(Math.random() * possibleMoversC.length);
-      console.log(mi);
       this.selectedPieceC = this.pieceAtPosition(possibleMoversC[mi].fromRow, possibleMoversC[mi].fromColumn);
       console.log(this.selectedPieceC);
       this.moveSelectedPieceC(possibleMoversC[mi].toRow, possibleMoversC[mi].toColumn);
     }
   }
 
-  moveSelectedPieceC(toRow, toColumn) {
-    let piece = this.pieceAtPosition(this.selectedPieceC.instance.row, this.selectedPieceC.instance.column);
-    let fromRow = piece.instance.row;
-    let fromColumn = piece.instance.column;
-
-    piece.instance.row = toRow;
-    piece.instance.column = toColumn;
-    piece.instance.setPosition();
-
-    if (Math.abs(fromRow - toRow) % 2 == 0) {
-      let removedPieceRow = (fromRow + toRow) / 2;
-      let removedPieceColumn = (fromColumn + toColumn) / 2;
-      let removedPiece = this.pieceAtPosition(removedPieceRow, removedPieceColumn);
-      this.pieces = this.pieces.filter(p => p != removedPiece);
-      removedPiece.destroy();
-    }
-
-    this.clearTurnDataH();
-    this.turn$.next('H');
-  }
+  
 
   checkForJumpsH() {
     this.pieces.forEach(p => {
       if (p.instance.player == 'H') {
-        let row = p.instance.row;
-        let column = p.instance.column;
-
-        if (
-          this.spaceExists(row - 2, column - 2) &&
-          this.pieceAtPosition(row - 1, column - 1)?.instance.player == 'C' &&
-          !this.pieceAtPosition(row - 2, column - 2)
-        ) {
-          this.possibleJumpers.push({
-            fromRow: row, 
-            fromColumn: column, 
-            toRow: row -2, 
-            toColumn: column - 2
-          });
-        }
-
-        if (
-          this.spaceExists(row - 2, column + 2) &&
-          this.pieceAtPosition(row - 1, column + 1)?.instance.player == 'C' &&
-          !this.pieceAtPosition(row - 2, column + 2)
-        ) {
-          this.possibleJumpers.push({
-            fromRow: row, 
-            fromColumn: column,
-            toRow: row - 2,
-            toColumn: column + 2
-          });
-        }
+        this.checkPieceCanJumpH(p);
       }
     })
   }
@@ -271,6 +239,32 @@ export class BoardComponent implements OnInit, AfterViewInit {
             fromRow: row, 
             fromColumn: column,
             toRow: row - 1,
+            toColumn: column + 1
+          });
+        }
+
+        if (
+          p.instance.isKing &&
+          this.spaceExists(row + 1, column - 1) &&
+          !this.pieceAtPosition(row + 1, column - 1)
+        ) {
+          this.possibleMovers.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row + 1,
+            toColumn: column - 1
+          });
+        }
+
+        if (
+          p.instance.isKing &&
+          this.spaceExists(row + 1, column + 1) &&
+          !this.pieceAtPosition(row + 1, column + 1)
+        ) {
+          this.possibleMovers.push({
+            fromRow: row, 
+            fromColumn: column,
+            toRow: row + 1,
             toColumn: column + 1
           });
         }
@@ -333,6 +327,9 @@ export class BoardComponent implements OnInit, AfterViewInit {
   }
 
   selectPiece(event) {
+    if (this.jumpingAgainH) {
+      return;
+    }
     console.log(event.row, event.column);
     this.selectedPiece = ({row: event.row, column: event.column});
     this.possibleJumpsBySelectedPiece = [];
@@ -374,10 +371,11 @@ export class BoardComponent implements OnInit, AfterViewInit {
     let fromRow = piece.instance.row;
     let fromColumn = piece.instance.column;
 
-
     piece.instance.row = toRow;
     piece.instance.column = toColumn;
     piece.instance.setPosition();
+
+    let jumped = false;
 
     if (Math.abs(fromRow - toRow) % 2 == 0) {
       let removedPieceRow = (fromRow + toRow) / 2;
@@ -385,16 +383,190 @@ export class BoardComponent implements OnInit, AfterViewInit {
       let removedPiece = this.pieceAtPosition(removedPieceRow, removedPieceColumn);
       this.pieces = this.pieces.filter(p => p != removedPiece);
       removedPiece.destroy();
+      jumped = true;
     }
 
+    this.jumpingAgainH = false;
+
     this.clearTurnDataH();
-    this.turn$.next('C');
+    if (jumped) {
+      this.checkPieceCanJumpH(piece);
+      if (this.possibleJumpers.length) {
+        this.selectPiece({row: piece.instance.row, column: piece.instance.column})
+        this.jumpingAgainH = true;
+      } else {
+        this.turn$.next('C');
+      }
+    } else {
+      this.turn$.next('C');
+    }
+  }
+
+  moveSelectedPieceC(toRow, toColumn) {
+    console.log(this.selectedPieceC);
+    let piece = this.pieceAtPosition(this.selectedPieceC.instance.row, this.selectedPieceC.instance.column);
+    let fromRow = piece.instance.row;
+    let fromColumn = piece.instance.column;
+
+    piece.instance.row = toRow;
+    piece.instance.column = toColumn;
+    piece.instance.setPosition();
+
+    let jumped = false;
+
+    if (Math.abs(fromRow - toRow) % 2 == 0) {
+      let removedPieceRow = (fromRow + toRow) / 2;
+      let removedPieceColumn = (fromColumn + toColumn) / 2;
+      let removedPiece = this.pieceAtPosition(removedPieceRow, removedPieceColumn);
+      this.pieces = this.pieces.filter(p => p != removedPiece);
+      removedPiece.destroy();
+      jumped = true;
+    }
+
+    this.selectedPieceC = piece;
+    this.possibleJumpersC = [];
+
+    setTimeout(() => {
+      if (jumped) {
+        this.checkPieceCanJumpC(piece);
+        if (this.possibleJumpersC.length) {
+          let ji = Math.floor(Math.random() * this.possibleJumpersC.length);
+          
+          this.moveSelectedPieceC(this.possibleJumpersC[ji].toRow, this.possibleJumpersC[ji].toColumn);
+        } else {
+          this.turn$.next('H');
+        }
+      } else {
+        this.turn$.next('H');
+      }
+  
+      this.clearTurnDataH();
+      this.turn$.next('H');
+    },200)
+    
+  }
+
+  checkPieceCanJumpC(p) {
+    let row = p.instance.row;
+    let column = p.instance.column;
+
+    if (
+      this.spaceExists(row + 2, column - 2) &&
+      this.pieceAtPosition(row + 1, column - 1)?.instance.player == 'H' &&
+      !this.pieceAtPosition(row + 2, column - 2)
+    ) {
+      this.possibleJumpersC.push({
+        fromRow: row, 
+        fromColumn: column, 
+        toRow: row + 2, 
+        toColumn: column - 2
+      });
+    }
+
+    if (
+      this.spaceExists(row + 2, column + 2) &&
+      this.pieceAtPosition(row + 1, column + 1)?.instance.player == 'H' &&
+      !this.pieceAtPosition(row + 2, column + 2)
+    ) {
+      this.possibleJumpersC.push({
+        fromRow: row, 
+        fromColumn: column,
+        toRow: row + 2,
+        toColumn: column + 2
+      });
+    }
+
+    if (
+      p.instance.isKing && 
+      this.spaceExists(row - 2, column - 2) &&
+      this.pieceAtPosition(row - 1, column - 1)?.instance.player == 'H' &&
+      !this.pieceAtPosition(row - 2, column - 2)
+    ) {
+      this.possibleJumpersC.push({
+        fromRow: row, 
+        fromColumn: column, 
+        toRow: row - 2, 
+        toColumn: column - 2
+      });
+    }
+
+    if (
+      p.instance.isKing && 
+      this.spaceExists(row - 2, column + 2) &&
+      this.pieceAtPosition(row - 1, column + 1)?.instance.player == 'H' &&
+      !this.pieceAtPosition(row - 2, column + 2)
+    ) {
+      this.possibleJumpersC.push({
+        fromRow: row, 
+        fromColumn: column, 
+        toRow: row - 2, 
+        toColumn: column + 2
+      });
+    }
+  }
+
+  checkPieceCanJumpH(p) {
+    let row = p.instance.row;
+    let column = p.instance.column;
+
+    if (
+      this.spaceExists(row - 2, column - 2) &&
+      this.pieceAtPosition(row - 1, column - 1)?.instance.player == 'C' &&
+      !this.pieceAtPosition(row - 2, column - 2)
+    ) {
+      this.possibleJumpers.push({
+        fromRow: row, 
+        fromColumn: column, 
+        toRow: row - 2, 
+        toColumn: column - 2
+      });
+    }
+
+    if (
+      this.spaceExists(row - 2, column + 2) &&
+      this.pieceAtPosition(row - 1, column + 1)?.instance.player == 'C' &&
+      !this.pieceAtPosition(row - 2, column + 2)
+    ) {
+      this.possibleJumpers.push({
+        fromRow: row, 
+        fromColumn: column,
+        toRow: row - 2,
+        toColumn: column + 2
+      });
+    }
+
+    if (
+      p.instance.isKing && 
+      this.spaceExists(row + 2, column - 2) &&
+      this.pieceAtPosition(row + 1, column - 1)?.instance.player == 'C' &&
+      !this.pieceAtPosition(row + 2, column - 2)
+    ) {
+      this.possibleJumpers.push({
+        fromRow: row, 
+        fromColumn: column, 
+        toRow: row + 2, 
+        toColumn: column - 2
+      });
+    }
+
+    if (
+      p.instance.isKing && 
+      this.spaceExists(row + 2, column + 2) &&
+      this.pieceAtPosition(row + 1, column + 1)?.instance.player == 'C' &&
+      !this.pieceAtPosition(row + 2, column + 2)
+    ) {
+      this.possibleJumpers.push({
+        fromRow: row, 
+        fromColumn: column, 
+        toRow: row + 2, 
+        toColumn: column + 2
+      });
+    }
   }
 
   spaceExists(row, column) {
-    if (row < 0 || row > 7) return false;
-    if (column < 0 || column > 7) return false;
-    return true;
+    if (row < 0 || row > 7 || column < 0 || column > 7) return false;
+    else return true;
   }
 
   
