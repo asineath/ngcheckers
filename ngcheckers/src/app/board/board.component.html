@@ -1,7 +1,8 @@
-<div class="container">
+<!-- <div class="container">
     <div class="row">
-        <div class="col-md-12">
-            <div class="board">
+        <div class="col-md-12"> -->
+            <div class="board animate__animated animate__fadeIn">
+                
                 <ng-container *ngFor="let row of board; let i = index">
                     <div *ngFor="let square of row; let ii = index" 
                         class="square" 
@@ -17,8 +18,19 @@
                     </div>
                 </ng-container>
                 <template #piecesContainer></template>
-                
+                <div class="winner-overlay animate__animated animate__fadeIn" *ngIf="winner">
+                    <div class="winner-overlay-content">
+                        <span *ngIf="winner == 'H'">You won!</span>
+                        <span *ngIf="winner == 'C'">You lost.</span>
+                        <button type="button" class="btn btn-primary" (click)="resetBoard()">Play again</button>
+                    </div>
+                </div>
             </div>
-        </div>
+            <div class="game-info animate__animated animate__fadeIn">
+                <p>Wins:{{(wins$ | async).wins}}</p>
+                <button class="btn btn-primary" type="button" [disabled]="resetting" style="background-color: #01CDFE;" (click)="resetWins()">Reset Wins</button>
+                <button class="btn btn-primary" type="button" [disabled]="resetting" style="background-color: #35AB59;" (click)="resetBoard()">Restart Game</button>
+            </div>
+        <!-- </div>
     </div>
-</div>
+</div> -->

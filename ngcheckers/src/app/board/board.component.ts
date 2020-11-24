@@ -1,6 +1,10 @@
+import { applySourceSpanToStatementIfNeeded } from '@angular/compiler/src/output/output_ast';
 import { Component, OnInit, QueryList, ViewChildren, ViewChild, ViewContainerRef, ComponentFactory, ComponentRef, ComponentFactoryResolver, AfterViewInit } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { select, Store } from '@ngrx/store';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { PieceComponent } from '../piece/piece.component';
+import { AppState } from '../_state/app.state';
+import * as winActions from '../_state/win.actions';
 
 
 @Component({
@@ -9,6 +13,8 @@ import { PieceComponent } from '../piece/piece.component';
   styleUrls: ['./board.component.css']
 })
 export class BoardComponent implements OnInit, AfterViewInit {
+
+  resetting: boolean = false;
 
   board: string[][] = []; 
 
@@ -28,12 +34,28 @@ export class BoardComponent implements OnInit, AfterViewInit {
 
   jumpingAgainH: boolean = false;
 
+  winner: string = null;
+
+  wins$: Observable<number>;
+
   @ViewChild('piecesContainer', {read: ViewContainerRef}) entry: ViewContainerRef;
   constructor(
-    private resolver: ComponentFactoryResolver
-  ) { }
+    private resolver: ComponentFactoryResolver,
+    private store: Store<AppState>
+  ) { 
+    this.wins$ = this.store.select(state => state.wins);
+  }
 
   ngOnInit(): void {
+    
+    let wins = localStorage.getItem("wins");
+    if (wins) {
+      this.store.dispatch(new winActions.setWins(parseInt(wins)));
+    }
+    // this.wins$.subscribe((data) => {
+    //   console.log(data);
+    // })
+
     this.resetBoard();
   }
 
@@ -47,7 +69,7 @@ export class BoardComponent implements OnInit, AfterViewInit {
       })
     });
 
-    console.log(this.pieces);
+    //console.log(this.pieces);
   }
 
   createPiece(row, column, player) {
@@ -63,28 +85,39 @@ export class BoardComponent implements OnInit, AfterViewInit {
   }
 
   resetBoard() {
-    // this.board = [
-    //   [null,'C',null,'C',null,'C',null,'C'],
-    //   ['C',null,'C',null,'C',null,'C', null],
-    //   [null,'C',null,'C',null,'C',null,'C'],
-    //   [null,null,null,null,null,null,null,null],
-    //   [null,null,null,null,null,null,null,null],
-    //   ['H',null,'H',null,'H',null,'H',null],
-    //   [null,'H',null,'H',null,'H',null,'H'],
-    //   ['H',null,'H',null,'H',null,'H',null],
-    // ];
+
+    if (this.resetting) return;
+
+    this.resetting = true;
+    this.winner = null;
+    this.pieces.forEach(p => {
+      p.destroy();
+    });
+    this.pieces = [];
+
     this.board = [
-      [null,null,null,null,null,'C',null,'C'],
-      ['C',null,'H',null,'C',null,'C', null],
-      [null,'C',null,null,null,'C',null,'C'],
-      [null,null,'H',null,null,null,null,null],
+      [null,'C',null,'C',null,'C',null,'C'],
+      ['C',null,'C',null,'C',null,'C', null],
+      [null,'C',null,'C',null,'C',null,'C'],
+      [null,null,null,null,null,null,null,null],
       [null,null,null,null,null,null,null,null],
       ['H',null,'H',null,'H',null,'H',null],
-      [null,'H',null,'H',null,'C',null,'H'],
-      ['H',null,'H',null,null,null,null,null],
+      [null,'H',null,'H',null,'H',null,'H'],
+      ['H',null,'H',null,'H',null,'H',null],
     ];
+    // this.board = [
+    //   [null,null,null,null,null,'C',null,'C'],
+    //   ['C',null,'H',null,'C',null,'C', null],
+    //   [null,'C',null,null,null,'C',null,'C'],
+    //   [null,null,'H',null,null,null,null,null],
+    //   [null,null,null,null,null,null,null,null],
+    //   ['H',null,'H',null,'H',null,'H',null],
+    //   [null,'H',null,'H',null,'C',null,'H'],
+    //   ['H',null,'H',null,null,null,null,null],
+    // ];
     setTimeout(() => {
       this.createStartingPieces();
+      this.resetting = false;
       this.turn$.next('H');
     }, 0)
     
@@ -187,19 +220,22 @@ export class BoardComponent implements OnInit, AfterViewInit {
       }
     })
   
-    console.log(this.possibleJumpersC);
-    console.log(possibleMoversC);
+    //console.log(this.possibleJumpersC);
+    //console.log(possibleMoversC);
 
     if (this.possibleJumpersC.length) {
       let ji = Math.floor(Math.random() * this.possibleJumpersC.length);
       this.selectedPieceC = this.pieceAtPosition(this.possibleJumpersC[ji].fromRow, this.possibleJumpersC[ji].fromColumn);
-      console.log(this.selectedPieceC);
+      //console.log(this.selectedPieceC);
       this.moveSelectedPieceC(this.possibleJumpersC[ji].toRow, this.possibleJumpersC[ji].toColumn);
     } else if (possibleMoversC.length) {
       let mi = Math.floor(Math.random() * possibleMoversC.length);
       this.selectedPieceC = this.pieceAtPosition(possibleMoversC[mi].fromRow, possibleMoversC[mi].fromColumn);
-      console.log(this.selectedPieceC);
+      //console.log(this.selectedPieceC);
       this.moveSelectedPieceC(possibleMoversC[mi].toRow, possibleMoversC[mi].toColumn);
+    } else {
+      this.winner = 'H';
+      this.store.dispatch(new winActions.addWin());
     }
   }
 
@@ -271,7 +307,11 @@ export class BoardComponent implements OnInit, AfterViewInit {
       }
     })
 
-    console.log(this.possibleMovers);
+    //console.log(this.possibleMovers);
+
+    if (this.possibleJumpers.length == 0 && this.possibleMovers.length == 0) {
+      this.winner = 'C';
+    }
   }
 
   spaceIsPossibleJumper(row, column) {
@@ -330,7 +370,7 @@ export class BoardComponent implements OnInit, AfterViewInit {
     if (this.jumpingAgainH) {
       return;
     }
-    console.log(event.row, event.column);
+    //console.log(event.row, event.column);
     this.selectedPiece = ({row: event.row, column: event.column});
     this.possibleJumpsBySelectedPiece = [];
     this.possibleMovesBySelectedPiece = [];
@@ -362,8 +402,8 @@ export class BoardComponent implements OnInit, AfterViewInit {
       }
     });
 
-    console.log(this.possibleJumpsBySelectedPiece);
-    console.log(this.possibleMovesBySelectedPiece);
+    //console.log(this.possibleJumpsBySelectedPiece);
+    //console.log(this.possibleMovesBySelectedPiece);
   }
 
   moveSelectedPiece(toRow, toColumn) {
@@ -403,7 +443,7 @@ export class BoardComponent implements OnInit, AfterViewInit {
   }
 
   moveSelectedPieceC(toRow, toColumn) {
-    console.log(this.selectedPieceC);
+    //console.log(this.selectedPieceC);
     let piece = this.pieceAtPosition(this.selectedPieceC.instance.row, this.selectedPieceC.instance.column);
     let fromRow = piece.instance.row;
     let fromColumn = piece.instance.column;
@@ -569,6 +609,9 @@ export class BoardComponent implements OnInit, AfterViewInit {
     else return true;
   }
 
+  resetWins() {
+    this.store.dispatch(new winActions.resetWins());
+  }
   
 
 

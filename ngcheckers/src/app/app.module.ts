@@ -7,6 +7,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AppRoutingModule } from './app-routing.module';
 import { PieceComponent } from './piece/piece.component';
+import { StoreModule } from '@ngrx/store';
+import { WinReducer } from './_state/win.reducer';
 
 @NgModule({
   declarations: [
@@ -19,6 +21,7 @@ import { PieceComponent } from './piece/piece.component';
     BrowserModule,
     RouterModule,
     AppRoutingModule,
+    StoreModule.forRoot({wins: WinReducer}),
   ],
   providers: [],
   bootstrap: [AppComponent]
