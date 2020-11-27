@@ -3,8 +3,9 @@
     <div class="piece" 
     [ngClass]="{'H': player == 'H', 'C': player == 'C'}" 
     (click)="selectPiece()">
-        <span *ngIf="isKing" class="crown">♕</span>
+        <!-- <span *ngIf="isKing" class="crown">♕</span> -->
         <!-- <i *ngIf="isKing" class="fas fa-crown"></i> -->
+        <img class="crown" *ngIf="isKing" src="./assets/crown.png" />
     </div>
 </div>
 

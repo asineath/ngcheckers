@@ -61,3 +61,10 @@ p.footer a {
     color: inherit;
     text-decoration: underline;
 }
+
+@media screen and (max-width: 768px) {
+    p.footer {
+        font-size: 10px;
+        line-height: 14px;
+    }
+}

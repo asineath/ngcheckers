@@ -472,7 +472,10 @@ export class BoardComponent implements OnInit, AfterViewInit {
         if (this.possibleJumpersC.length) {
           let ji = Math.floor(Math.random() * this.possibleJumpersC.length);
           
-          this.moveSelectedPieceC(this.possibleJumpersC[ji].toRow, this.possibleJumpersC[ji].toColumn);
+          setTimeout(() => {
+            this.moveSelectedPieceC(this.possibleJumpersC[ji].toRow, this.possibleJumpersC[ji].toColumn);
+          }, 500)
+          
         } else {
           this.turn$.next('H');
         }
